@@ -1,0 +1,393 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "klio.cnpg.io/v1alpha1",
+          "kind": "PluginConfiguration",
+          "metadata": {
+            "name": "pluginconfiguration-sample"
+          },
+          "spec": {
+            "clusterName": "cluster-example",
+            "serverAddress": "server-sample.default",
+            "tier1": {
+              "retention": {
+                "latest": 10
+              }
+            },
+            "tier2": {
+              "enableBackup": true,
+              "enableRecovery": true,
+              "retention": {
+                "latest": 10
+              }
+            },
+            "tls": {
+              "clientIdentity": {
+                "certPath": "tls.crt",
+                "keyPath": "tls.key",
+                "volume": {
+                  "secret": {
+                    "secretName": "cluster-example-klio-user"
+                  }
+                }
+              },
+              "serverCa": {
+                "path": "ca.crt",
+                "volume": {
+                  "secret": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "secretName": "server-sample-server-ca"
+                  }
+                }
+              }
+            },
+            "walPrefetch": {
+              "count": 2,
+              "maxConcurrentDownloads": 4
+            }
+          }
+        },
+        {
+          "apiVersion": "klio.cnpg.io/v1alpha1",
+          "kind": "Server",
+          "metadata": {
+            "annotations": {
+              "klio.cnpg.io/pprof": "true"
+            },
+            "name": "server-sample"
+          },
+          "spec": {
+            "image": "ghcr.io/cloudnative-pg/klio@sha256:d68e23db09380547140f915f8dedd9d9294a5a9cc149c96ee0af9e61c3769939",
+            "imagePullPolicy": "Always",
+            "storage": {
+              "pvcTemplate": {
+                "accessModes": [
+                  "ReadWriteOnce"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "3Gi"
+                  }
+                }
+              }
+            },
+            "tier1": {
+              "encryption": {
+                "identityPath": "secret-key",
+                "keyPath": "encryption-key",
+                "volume": {
+                  "secret": {
+                    "secretName": "server-sample-encryption"
+                  }
+                }
+              }
+            },
+            "tls": {
+              "clientCa": {
+                "path": "ca.crt",
+                "volume": {
+                  "secret": {
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ],
+                    "secretName": "server-sample-client-ca"
+                  }
+                }
+              },
+              "serverIdentity": {
+                "certPath": "tls.crt",
+                "keyPath": "tls.key",
+                "volume": {
+                  "secret": {
+                    "secretName": "server-sample-tls"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2026-11-23T16:05:35Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: klio.v0.0.21-dev89
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: PluginConfiguration
+        name: pluginconfigurations.klio.cnpg.io
+        version: v1alpha1
+      - kind: Server
+        name: servers.klio.cnpg.io
+        version: v1alpha1
+  description: Klio description. TODO.
+  displayName: Klio
+  icon:
+    - base64data: ""
+      mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - klio.cnpg.io
+              resources:
+                - pluginconfigurations
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - klio.cnpg.io
+              resources:
+                - pluginconfigurations/finalizers
+                - servers/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - klio.cnpg.io
+              resources:
+                - pluginconfigurations/status
+                - servers/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - klio.cnpg.io
+              resources:
+                - servers
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: klio-operator-controller-manager
+      deployments:
+        - label:
+            app.kubernetes.io/managed-by: kustomize
+            app.kubernetes.io/name: klio-operator
+            control-plane: controller-manager
+          name: klio-operator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: klio-operator
+                control-plane: controller-manager
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  app.kubernetes.io/name: klio-operator
+                  control-plane: controller-manager
+              spec:
+                containers:
+                  - args:
+                      - --metrics-bind-address=:8443
+                      - --leader-elect
+                      - --health-probe-bind-address=:8081
+                      - --plugin-server-cert=/pluginServer/tls.crt
+                      - --plugin-server-key=/pluginServer/tls.key
+                      - --plugin-client-cert=/pluginClient/tls.crt
+                      - --plugin-server-address=:9090
+                    command:
+                      - /manager
+                    env:
+                      - name: SIDECAR_IMAGE
+                        value: ghcr.io/cloudnative-pg/klio@sha256:d68e23db09380547140f915f8dedd9d9294a5a9cc149c96ee0af9e61c3769939
+                      - name: RELATED_IMAGE_SIDECAR
+                        value: ghcr.io/cloudnative-pg/klio@sha256:d68e23db09380547140f915f8dedd9d9294a5a9cc149c96ee0af9e61c3769939
+                    image: ghcr.io/cloudnative-pg/klio-operator@sha256:b984cc25d4a467f99a9e9e26462785a212571dce6c361e78374c7e64d689dce1
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                    volumeMounts:
+                      - mountPath: /pluginServer
+                        name: plugin-server
+                        readOnly: true
+                      - mountPath: /pluginClient
+                        name: plugin-client
+                        readOnly: true
+                securityContext:
+                  runAsNonRoot: true
+                  seccompProfile:
+                    type: RuntimeDefault
+                serviceAccountName: klio-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+                volumes:
+                  - name: plugin-server
+                    secret:
+                      optional: true
+                      secretName: klio-plugin-server-tls
+                  - name: plugin-client
+                    secret:
+                      optional: true
+                      secretName: klio-plugin-client-tls
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: klio-operator-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - klio
+  links:
+    - name: Klio
+      url: https://klio.domain
+  maintainers:
+    - email: your@email.com
+      name: Maintainer Name
+  maturity: alpha
+  provider:
+    name: Provider Name
+    url: https://your.domain
+  relatedImages:
+    - image: ghcr.io/cloudnative-pg/klio@sha256:d68e23db09380547140f915f8dedd9d9294a5a9cc149c96ee0af9e61c3769939
+      name: sidecar
+    - image: ghcr.io/cloudnative-pg/klio-operator@sha256:b984cc25d4a467f99a9e9e26462785a212571dce6c361e78374c7e64d689dce1
+      name: manager
+    - image: ghcr.io/cloudnative-pg/klio@sha256:d68e23db09380547140f915f8dedd9d9294a5a9cc149c96ee0af9e61c3769939
+      name: klio-d68e23db09380547140f915f8dedd9d9294a5a9cc149c96ee0af9e61c3769939-annotation
+  version: 0.0.21-dev89
